@@ -1,0 +1,39 @@
+#!/bin/bash
+# Detects if a VS Code Remote Server is active AND an AI coding tool (Copilot, Claude, or Cline) is installed.
+
+LLM_EXTS=("GitHub.copilot" "Anthropic.claude" "Bloop.cline")
+
+# --- Step 1: Detect active VS Code Remote Server ---
+if pgrep -u "$USER" -f "/\.vscode-server/" >/dev/null 2>&1; then
+  vscode_active=true
+else
+  vscode_active=false
+fi
+
+# --- Step 2: Check if VS Code CLI exists ---
+if ! command -v code >/dev/null 2>&1; then
+  echo "ℹ️  VS Code CLI not found (cannot check installed extensions)."
+  vscode_cli=false
+else
+  vscode_cli=true
+fi
+
+# --- Step 3: Check installed LLM-based extensions ---
+found_llm=false
+if [ "$vscode_cli" = true ]; then
+  installed=$(code --list-extensions 2>/dev/null)
+  for ext in "${LLM_EXTS[@]}"; do
+    if echo "$installed" | grep -qi "$ext"; then
+      found_llm=true
+      break
+    fi
+  done
+fi
+
+# --- Step 4: Evaluate combined condition ---
+if [ "$vscode_active" = true ] && [ "$found_llm" = true ]; then
+  echo "❌ LLM tools active (VS Code Remote + Copilot/Claude/Cline)."
+else
+  echo "✅ No LLM tools active."
+fi
+
